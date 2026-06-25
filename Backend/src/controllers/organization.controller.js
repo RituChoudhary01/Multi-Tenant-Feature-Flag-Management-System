@@ -6,28 +6,28 @@ import {
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { handleError } from '../utils/handleError.js';
 
-export const getAllOrganizationsHandler = (req, res) => {
+export const getAllOrganizationsHandler = async (req, res) => {
   try {
-    const result = getAllOrganizations();
+    const result = await getAllOrganizations();
     return ApiResponse.success(res, 'Organizations fetched successfully', result);
   } catch (error) {
     return handleError(res, error);
   }
 };
 
-export const createOrganizationHandler = (req, res) => {
+export const createOrganizationHandler = async (req, res) => {
   try {
     const { name } = req.body;
-    const result = createOrganization(name);
+    const result = await createOrganization(name);
     return ApiResponse.success(res, 'Organization created successfully', result, 201);
   } catch (error) {
     return handleError(res, error);
   }
 };
 
-export const getPublicOrganizationsHandler = (req, res) => {
+export const getPublicOrganizationsHandler = async (req, res) => {
   try {
-    const result = getPublicOrganizations();
+    const result = await getPublicOrganizations();
     return ApiResponse.success(res, 'Organizations fetched successfully', result);
   } catch (error) {
     return handleError(res, error);

@@ -1,21 +1,22 @@
 import db from '../config/db.js';
 import { AppError } from '../utils/AppError.js';
 
-export const getAllOrganizations = () => {
-  return db.prepare(`
+export const getAllOrganizations = async () => {
+  const result = await db.query(`
     SELECT
       o.id, o.name, o.slug, o.created_at,
-      COUNT(DISTINCT u.id) AS admin_count,
-      COUNT(DISTINCT f.id) AS flag_count
+      COUNT(DISTINCT u.id)::int AS admin_count,
+      COUNT(DISTINCT f.id)::int AS flag_count
     FROM organizations o
     LEFT JOIN users         u ON u.organization_id = o.id
     LEFT JOIN feature_flags f ON f.organization_id = o.id
     GROUP BY o.id
     ORDER BY o.created_at DESC
-  `).all();
+  `);
+  return result.rows;
 };
 
-export const createOrganization = (name) => {
+export const createOrganization = async (name) => {
   if (!name?.trim()) {
     throw new AppError(400, 'Organization name is required');
   }
@@ -23,19 +24,20 @@ export const createOrganization = (name) => {
   const slug = name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
   try {
-    const { lastInsertRowid } = db.prepare(
-      'INSERT INTO organizations (name, slug) VALUES (?, ?)'
-    ).run(name.trim(), slug);
-
-    return db.prepare('SELECT * FROM organizations WHERE id = ?').get(lastInsertRowid);
+    const result = await db.query(
+      'INSERT INTO organizations (name, slug) VALUES ($1, $2) RETURNING *',
+      [name.trim(), slug]
+    );
+    return result.rows[0];
   } catch (err) {
-    if (err.message.includes('UNIQUE')) {
+    if (err.code === '23505') {
       throw new AppError(409, 'Organization with this name already exists');
     }
     throw err;
   }
 };
 
-export const getPublicOrganizations = () => {
-  return db.prepare('SELECT id, name FROM organizations ORDER BY name ASC').all();
+export const getPublicOrganizations = async () => {
+  const result = await db.query('SELECT id, name FROM organizations ORDER BY name ASC');
+  return result.rows;
 };

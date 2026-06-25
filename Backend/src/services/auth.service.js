@@ -15,25 +15,29 @@ export const superAdminLogin = (email, password) => {
   return { token, role: 'super_admin', email };
 };
 
-export const adminSignup = (email, password, organization_id) => {
+export const adminSignup = async (email, password, organization_id) => {
   if (!email || !password || !organization_id) {
     throw new AppError(400, 'email, password and organization_id are required');
   }
 
-  const org = db.prepare('SELECT id, name FROM organizations WHERE id = ?').get(organization_id);
+  const orgResult = await db.query('SELECT id, name FROM organizations WHERE id = $1', [organization_id]);
+  const org = orgResult.rows[0];
   if (!org) throw new AppError(400, 'Organization not found');
 
-  if (db.prepare('SELECT id FROM users WHERE email = ?').get(email)) {
+  const existing = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+  if (existing.rows[0]) {
     throw new AppError(409, 'Email already registered');
   }
 
   const password_hash = bcrypt.hashSync(password, 10);
-  const { lastInsertRowid } = db.prepare(
-    'INSERT INTO users (email, password_hash, role, organization_id) VALUES (?, ?, ?, ?)'
-  ).run(email, password_hash, 'org_admin', organization_id);
+  const inserted = await db.query(
+    'INSERT INTO users (email, password_hash, role, organization_id) VALUES ($1, $2, $3, $4) RETURNING id',
+    [email, password_hash, 'org_admin', organization_id]
+  );
+  const newUserId = inserted.rows[0].id;
 
   const token = jwt.sign(
-    { id: lastInsertRowid, role: 'org_admin', email, organization_id: Number(organization_id) },
+    { id: newUserId, role: 'org_admin', email, organization_id: Number(organization_id) },
     JWT_SECRET, { expiresIn: '8h' }
   );
 
@@ -44,17 +48,19 @@ export const adminSignup = (email, password, organization_id) => {
   };
 };
 
-export const adminLogin = (email, password) => {
+export const adminLogin = async (email, password) => {
   if (!email || !password) {
     throw new AppError(400, 'email and password are required');
   }
 
-  const user = db.prepare('SELECT * FROM users WHERE email = ? AND role = ?').get(email, 'org_admin');
+  const userResult = await db.query('SELECT * FROM users WHERE email = $1 AND role = $2', [email, 'org_admin']);
+  const user = userResult.rows[0];
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     throw new AppError(401, 'Invalid credentials');
   }
 
-  const org = db.prepare('SELECT name FROM organizations WHERE id = ?').get(user.organization_id);
+  const orgResult = await db.query('SELECT name FROM organizations WHERE id = $1', [user.organization_id]);
+  const org = orgResult.rows[0];
 
   const token = jwt.sign(
     { id: user.id, role: 'org_admin', email: user.email, organization_id: user.organization_id },

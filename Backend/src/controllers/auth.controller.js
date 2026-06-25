@@ -12,20 +12,20 @@ export const superAdminLoginHandler = (req, res) => {
   }
 };
 
-export const adminSignupHandler = (req, res) => {
+export const adminSignupHandler = async (req, res) => {
   try {
     const { email, password, organization_id } = req.body;
-    const result = adminSignup(email, password, organization_id);
+    const result = await adminSignup(email, password, organization_id);
     return ApiResponse.success(res, 'Account created successfully', result, 201);
   } catch (error) {
     return handleError(res, error);
   }
 };
 
-export const adminLoginHandler = (req, res) => {
+export const adminLoginHandler = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const result = adminLogin(email, password);
+    const result = await adminLogin(email, password);
     return ApiResponse.success(res, 'Login successful', result);
   } catch (error) {
     return handleError(res, error);
