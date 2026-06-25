@@ -1,4 +1,5 @@
-const API = 'http://localhost:4000/api';
+const API = 'https://multi-tenant-feature-flag-management-lkjo.onrender.com/api';
+
 
 const request = async (method, path, body, token) => {
   const headers = { 'Content-Type': 'application/json' };

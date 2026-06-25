@@ -1,4 +1,5 @@
-const API = 'http://localhost:4000/api';
+const API = 'https://multi-tenant-feature-flag-management-lkjo.onrender.com/api';
+
 
 export const getPublicOrgs = async () => {
   const res = await fetch(`${API}/organizations/public`);
